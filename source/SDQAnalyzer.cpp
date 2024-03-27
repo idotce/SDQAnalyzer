@@ -5,7 +5,7 @@
 #include <cmath>
 
 SDQAnalyzer::SDQAnalyzer()
-:	Analyzer2(),  
+:	Analyzer2(),
 	mSettings( new SDQAnalyzerSettings() ),
 	mSimulationInitilized( false )
 {
@@ -43,7 +43,7 @@ void SDQAnalyzer::WorkerThread()
 	while (1){
 		uint8_t data = 0;
 		uint8_t bits = 0;
-		uint64_t break_pos = 0;
+		uint64_t break_pos = 0, break_pre = 0;;
 		uint64_t curSample = 0;
 		uint64_t curLastSample = 0;
 		uint64_t frame_starts[10] = {};
@@ -77,10 +77,10 @@ void SDQAnalyzer::WorkerThread()
 				mResults->AddMarker(curSample, AnalyzerResults::Dot, mSettings->mInputChannel);
 			}else{
 				//low duration
-				if (time_seconds > 20e-6){
+				//if (time_seconds > 20e-6){
 					//bad duration
-					break;
-				}
+				//	break;
+				//}
 
 				if (time_seconds > 10e-6){
 					if (bits){
@@ -89,7 +89,8 @@ void SDQAnalyzer::WorkerThread()
 					}else{
 						//encountered break
 						break_pos = curSample;
-						mResults->AddMarker(curSample, AnalyzerResults::Square, mSettings->mInputChannel);
+						break_pre = lastSample;
+						mResults->AddMarker(curSample, AnalyzerResults::Start, mSettings->mInputChannel);
 					}
 				}else{
 					//encountered bit
@@ -105,8 +106,13 @@ void SDQAnalyzer::WorkerThread()
 				}
 			}
 		}
-		if (bits >= 8){
-			//we have a byte to save. 
+		if (break_pos) {
+			FrameV2 frame_v2;
+			frame_v2.AddString("Breaks", "Break");
+			mResults->AddFrameV2( frame_v2, "str", break_pos, break_pre);
+		}
+		if (bits >= 8) {
+			//we have a byte to save.
 			Frame frame;
 			frame.mData1 = data;
 			frame.mFlags = 0;
@@ -117,12 +123,12 @@ void SDQAnalyzer::WorkerThread()
 				// printf("bad frame data=0x%08x curSample=%llu\n",data,curSample);
 				continue;
 			}
+			mResults->AddFrame( frame );
 
 			FrameV2 frame_v2;
-			frame_v2.AddByte("value", data);
+			frame_v2.AddByte("Value", data);
 			mResults->AddFrameV2( frame_v2, "byte", frame.mStartingSampleInclusive, frame.mEndingSampleInclusive );
 
-			mResults->AddFrame( frame );
 			mResults->CommitResults();
 			ReportProgress( frame.mEndingSampleInclusive );
 		}
