@@ -89,7 +89,7 @@ void SDQAnalyzer::WorkerThread()
 					}else{
 						//encountered break
 						break_pos = curSample;
-						break_pre = lastSample;
+						break_pre = curLastSample;
 						mResults->AddMarker(curSample, AnalyzerResults::Start, mSettings->mInputChannel);
 					}
 				}else{
@@ -109,7 +109,7 @@ void SDQAnalyzer::WorkerThread()
 		if (break_pos) {
 			FrameV2 frame_v2;
 			frame_v2.AddString("Breaks", "Break");
-			mResults->AddFrameV2( frame_v2, "str", break_pos, break_pre);
+			mResults->AddFrameV2( frame_v2, "str", break_pre, break_pos);
 		}
 		if (bits >= 8) {
 			//we have a byte to save.
